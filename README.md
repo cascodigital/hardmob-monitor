@@ -78,8 +78,6 @@ O feed estara disponivel em `http://localhost:8099/feed?token=hm0b-k1ttl3r-rss`.
 
 ### Expondo com Cloudflare Tunnel
 
-O `docker-compose.yml` do RSS se conecta a uma rede Docker externa chamada `hmob_hmob_network` (criada pelo compose da versao Telegram, que inclui o FlareSolverr). Se voce rodar o RSS standalone sem o Telegram, suba o FlareSolverr separadamente ou ajuste `FLARESOLVERR_URL` em `app.py` para o endereco do seu FlareSolverr.
-
 Para expor com Cloudflare Tunnel, adicione um hostname no seu tunnel apontando para `http://<ip-do-servidor>:8099` e use a URL publica com o token:
 
 ```
