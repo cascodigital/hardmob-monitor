@@ -38,7 +38,7 @@ services:
       - EVOLUTION_API_URL=http://evolution-api:8080
       - EVOLUTION_INSTANCE=hardmob
       - EVOLUTION_API_KEY=changeme
-      - WHATSAPP_NUMBER=5511999999999
+      - WHATSAPP_NUMBER=5551992413388
     depends_on:
       - flaresolverr
       - evolution-api
