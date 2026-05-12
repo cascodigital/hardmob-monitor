@@ -71,9 +71,9 @@ docker compose up -d
 
 O feed estara disponivel em `http://localhost:8099/feed?token=hm0b-k1ttl3r-rss`.
 
-> **Troque o token** em `app.py` antes de expor publicamente:
+> **Troque o token** em `app.py` antes de expor publicamente — escolha qualquer senha que quiser:
 > ```python
-> FEED_TOKEN = "seu_token_secreto"
+> FEED_TOKEN = "uma-senha-qualquer-que-voce-inventa"
 > ```
 
 ### Expondo com Cloudflare Tunnel
@@ -81,7 +81,7 @@ O feed estara disponivel em `http://localhost:8099/feed?token=hm0b-k1ttl3r-rss`.
 Para expor com Cloudflare Tunnel, adicione um hostname no seu tunnel apontando para `http://<ip-do-servidor>:8099` e use a URL publica com o token:
 
 ```
-https://seudominio.com/feed?token=seu_token_secreto
+https://seudominio.com/feed?token=uma-senha-qualquer-que-voce-inventa
 ```
 
 ### Personalizacao
