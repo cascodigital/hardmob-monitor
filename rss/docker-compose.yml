@@ -1,0 +1,15 @@
+services:
+  hmobrss:
+    build: .
+    container_name: hmobrss
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    environment:
+      - TZ=America/Sao_Paulo
+    networks:
+      - hmob_hmob_network
+
+networks:
+  hmob_hmob_network:
+    external: true
