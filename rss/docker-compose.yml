@@ -8,6 +8,11 @@ services:
       - TZ=America/Sao_Paulo
     networks:
       - hmobrss_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8191/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   hmobrss:
     build: .
@@ -19,9 +24,15 @@ services:
       - TZ=America/Sao_Paulo
       - FEED_TOKEN=${FEED_TOKEN:-change-me}
     depends_on:
-      - flaresolverr
+      flaresolverr:
+        condition: service_healthy
     networks:
       - hmobrss_network
+    healthcheck:
+      test: ["CMD-SHELL", "python - <<'PY'\nimport os, urllib.request\nurl = 'http://127.0.0.1:8099/?token=' + os.environ.get('FEED_TOKEN', 'change-me')\nurllib.request.urlopen(url, timeout=5).read()\nPY"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 networks:
   hmobrss_network:
