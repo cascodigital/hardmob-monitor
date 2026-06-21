@@ -1,13 +1,20 @@
+<div align="center">
+
 # HardMOB Monitor
 
-![Status](https://img.shields.io/badge/Status-Active-brightgreen)
-![License](https://img.shields.io/badge/License-MIT-blue)
-![Author](https://img.shields.io/badge/Author-Casco%20Digital-orange)
+**Deal monitor with Telegram alerts and an RSS feed for HardMOB promotions.**
 
+![Status](https://img.shields.io/badge/Status-Active-16A34A?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-2563EB?style=flat-square)
+![Casco Digital](https://img.shields.io/badge/Casco-Digital-111827?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
 ![Telegram](https://img.shields.io/badge/Telegram-Bot-26A5E4?style=flat-square&logo=telegram&logoColor=white)
 ![RSS](https://img.shields.io/badge/RSS-Feed-FFA500?style=flat-square&logo=rss&logoColor=white)
+
+</div>
+
+---
 
 Monitor de novos topicos no forum de promocoes do [HardMOB](https://www.hardmob.com.br/forumdisplay.php?f=407). Usa FlareSolverr para bypass de Cloudflare.
 
