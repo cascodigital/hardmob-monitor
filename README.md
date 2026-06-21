@@ -1,111 +1,84 @@
 <div align="center">
 
-# HardMOB Monitor
+# HardMOB RSS Monitor
 
-**Deal monitor with Telegram alerts and an RSS feed for HardMOB promotions.**
+**RSS feed for new HardMOB promotions, with FlareSolverr-backed scraping.**
 
 ![Status](https://img.shields.io/badge/Status-Active-16A34A?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-2563EB?style=flat-square)
 ![Casco Digital](https://img.shields.io/badge/Casco-Digital-111827?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
-![Telegram](https://img.shields.io/badge/Telegram-Bot-26A5E4?style=flat-square&logo=telegram&logoColor=white)
 ![RSS](https://img.shields.io/badge/RSS-Feed-FFA500?style=flat-square&logo=rss&logoColor=white)
 
 </div>
 
 ---
 
-Monitor de novos topicos no forum de promocoes do [HardMOB](https://www.hardmob.com.br/forumdisplay.php?f=407). Usa FlareSolverr para bypass de Cloudflare.
+Servidor RSS para novos topicos no forum de promocoes do [HardMOB](https://www.hardmob.com.br/forumdisplay.php?f=407). Usa FlareSolverr para bypass de Cloudflare e expoe um feed compativel com Tiny Tiny RSS, Feedly e outros leitores.
 
-Disponivel em duas versoes:
+O conteudo do primeiro post de cada topico e buscado em background logo apos a descoberta, para que o leitor RSS receba titulo, link e descricao quando disponivel.
 
-| | Telegram | RSS |
-|---|---|---|
-| **Pasta** | `/` (raiz) | `rss/` |
-| **Como funciona** | Scrapa a cada 10min e envia mensagem no Telegram | Serve feed RSS com conteudo dos posts para qualquer leitor |
-| **Requer** | Bot Telegram | Leitor RSS (ex: Tiny Tiny RSS) |
-| **Notificacao** | Push via Telegram | Pelo proprio leitor RSS |
-
----
-
-## Opcao 1 — Telegram
-
-Scrapa o forum a cada 10 minutos e envia uma mensagem via Telegram Bot API para cada topico novo.
-
-### Quick Start
-
-1. Crie um bot no Telegram via [@BotFather](https://t.me/BotFather) e pegue o token + chat_id
-2. Edite as credenciais em `monitor_hardmob.py`:
-   ```python
-   TELEGRAM_BOT_TOKEN = "seu_token"
-   TELEGRAM_CHAT_ID = "seu_chat_id"
-   ```
-3. Execute:
-   ```bash
-   git clone https://github.com/cascodigital/hardmob-monitor.git
-   cd hardmob-monitor
-   docker compose up -d
-   ```
-
-### Personalizacao
-
-```python
-CHECK_INTERVAL = 600   # Intervalo em segundos (padrao: 10min)
-FORUM_URL = "https://www.hardmob.com.br/forumdisplay.php?f=407"
-```
-
-### Stack
-
-- Python 3.11 + BeautifulSoup4
-- [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr) (bypass Cloudflare)
-- Telegram Bot API
-- Docker Compose
-
----
-
-## Opcao 2 — RSS
-
-Servidor RSS que expoe um feed compativel com qualquer leitor (Tiny Tiny RSS, Feedly, etc). Inclui o conteudo completo do primeiro post de cada topico. Novos topicos sao detectados a cada 10 minutos; o conteudo de cada thread e buscado em background logo apos a descoberta.
-
-### Quick Start
+## Quick Start
 
 ```bash
 git clone https://github.com/cascodigital/hardmob-monitor.git
 cd hardmob-monitor/rss
+cp .env.example .env
+# edite FEED_TOKEN no .env
 docker compose up -d
 ```
 
-O feed estara disponivel em `http://localhost:8099/feed?token=hm0b-k1ttl3r-rss`.
+Feed:
 
-> **Troque o token** em `app.py` antes de expor publicamente — escolha qualquer senha que quiser:
-> ```python
-> FEED_TOKEN = "uma-senha-qualquer-que-voce-inventa"
-> ```
-
-### Expondo com Cloudflare Tunnel
-
-Para expor com Cloudflare Tunnel, adicione um hostname no seu tunnel apontando para `http://<ip-do-servidor>:8099` e use a URL publica com o token:
-
-```
-https://seudominio.com/feed?token=uma-senha-qualquer-que-voce-inventa
+```text
+http://localhost:8099/feed?token=SEU_TOKEN
 ```
 
-### Personalizacao
+Status:
+
+```text
+http://localhost:8099/?token=SEU_TOKEN
+```
+
+## Configuracao
+
+Defina o token de acesso por variavel de ambiente:
+
+```bash
+FEED_TOKEN="troque-este-token"
+```
+
+No Docker Compose, `FEED_TOKEN` e lido do ambiente ou de `.env`. Se nao for definido, o fallback e `change-me`, adequado apenas para teste local.
+
+## Expondo com Cloudflare Tunnel
+
+Crie um hostname no tunnel apontando para:
+
+```text
+http://<ip-do-servidor>:8099
+```
+
+Use a URL publica com o token:
+
+```text
+https://seudominio.com/feed?token=SEU_TOKEN
+```
+
+## Personalizacao
+
+No codigo:
 
 ```python
-REFRESH_INTERVAL = 600   # Intervalo de scrape em segundos (padrao: 10min)
+REFRESH_INTERVAL = 600
 FORUM_URL = "https://www.hardmob.com.br/forumdisplay.php?f=407"
-FEED_TOKEN = "hm0b-k1ttl3r-rss"   # Token de acesso ao feed
 ```
 
-### Stack
+## Stack
 
 - Python 3.11 + BeautifulSoup4 + Flask
-- [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr) (bypass Cloudflare)
+- [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr)
 - Docker Compose
-
----
 
 ## Aviso
 
@@ -113,4 +86,4 @@ Ferramenta de automacao pessoal. Sem afiliacao com HardMOB. Respeite os termos d
 
 ---
 
-Desenvolvido com 🐢 (e cafe) por **Casco Digital**.
+Desenvolvido com Casco Digital.

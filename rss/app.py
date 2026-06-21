@@ -1,5 +1,7 @@
 import threading
 import time
+import os
+import logging
 from datetime import datetime, timezone
 from email.utils import format_datetime
 from xml.etree.ElementTree import Element, SubElement, tostring
@@ -11,9 +13,10 @@ from flask import Flask, Response, request, abort
 FORUM_URL = "https://www.hardmob.com.br/forumdisplay.php?f=407"
 FLARESOLVERR_URL = "http://flaresolverr:8191/v1"
 REFRESH_INTERVAL = 600
-FEED_TOKEN = "hm0b-k1ttl3r-rss"
+FEED_TOKEN = os.environ.get("FEED_TOKEN", "change-me")
 
 app = Flask(__name__)
+logging.getLogger("werkzeug").disabled = True
 
 # {url: {"title": str, "description": str, "fetched_at": datetime}}
 _content_cache = {}
