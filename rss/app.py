@@ -1,3 +1,9 @@
+"""Authenticated RSS feed of new threads in the HardMOB deals forum.
+
+Periodically fetches the forum listing through a FlareSolverr instance,
+queues new threads for a background fetch of their first post and serves
+the result as RSS 2.0 behind a shared token.
+"""
 import threading
 import time
 import os
@@ -20,7 +26,7 @@ logging.getLogger("werkzeug").disabled = True
 
 # {url: {"title": str, "description": str, "fetched_at": datetime}}
 _content_cache = {}
-_items_order = []  # mantém ordem de descoberta
+_items_order = []  # keeps discovery order
 _lock = threading.Lock()
 _fetch_queue = []
 _queue_lock = threading.Lock()
@@ -64,7 +70,7 @@ def scrape_thread(url):
     if not html:
         return ""
     soup = BeautifulSoup(html, "html.parser")
-    # seletores vBulletin para o primeiro post
+    # vBulletin selectors for the first post
     for selector in (
         ".postrow:first-of-type .content",
         "#posts .postrow .content",
@@ -92,15 +98,15 @@ def fetch_worker():
                         _content_cache[url]["description"] = desc
                         _content_cache[url]["fetched_at"] = datetime.now(timezone.utc)
             except Exception as e:
-                print(f"  [fetch] erro: {e}")
-            time.sleep(3)  # pausa entre fetches pra não martelas o FlareSolverr
+                print(f"  [fetch] error: {e}")
+            time.sleep(3)  # pause between fetches to avoid overloading FlareSolverr
         else:
             time.sleep(5)
 
 
 def refresh_loop():
     while True:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Atualizando listagem...")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Refreshing listing...")
         try:
             items = scrape_listing()
             now = datetime.now(timezone.utc)
@@ -118,15 +124,15 @@ def refresh_loop():
                         _items_order.append(url)
                         new_urls.append(url)
                     else:
-                        # atualiza título se mudou
+                        # update the title if it changed
                         _content_cache[url]["title"] = item["title"]
             with _queue_lock:
                 for url in new_urls:
                     if url not in _fetch_queue:
                         _fetch_queue.append(url)
-            print(f"  {len(items)} topicos, {len(new_urls)} novos para buscar conteudo")
+            print(f"  {len(items)} threads, {len(new_urls)} new queued for content fetch")
         except Exception as e:
-            print(f"Erro refresh: {e}")
+            print(f"Refresh error: {e}")
         time.sleep(REFRESH_INTERVAL)
 
 
@@ -137,6 +143,7 @@ def build_rss():
 
     rss = Element("rss", version="2.0")
     channel = SubElement(rss, "channel")
+    # Channel title/description are shown in the feed reader; kept in Portuguese on purpose.
     SubElement(channel, "title").text = "HardMob Promocoes"
     SubElement(channel, "link").text = "https://www.hardmob.com.br/forums/407-Promocoes"
     SubElement(channel, "description").text = "Novos topicos em HardMob Promocoes"
@@ -174,7 +181,7 @@ def index():
         with_content = sum(1 for v in _content_cache.values() if v.get("description"))
     with _queue_lock:
         queued = len(_fetch_queue)
-    return f"HardMob RSS | {total} topicos | {with_content} com conteudo | {queued} na fila"
+    return f"HardMob RSS | {total} threads | {with_content} with content | {queued} queued"
 
 
 if __name__ == "__main__":

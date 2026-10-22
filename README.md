@@ -1,89 +1,107 @@
-<div align="center">
+# hardmob-monitor
 
-# HardMOB RSS Monitor
+A small self-hosted service that publishes new threads from the HardMOB deals forum as a token-protected RSS feed, for anyone who follows deals in an RSS reader.
 
-**RSS feed for new HardMOB promotions, with FlareSolverr-backed scraping.**
+![License](https://img.shields.io/badge/license-MIT-blue) ![Python](https://img.shields.io/badge/python-3.11-3776AB) ![Status](https://img.shields.io/badge/status-maintained-blue)
 
-![Status](https://img.shields.io/badge/Status-Active-16A34A?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-2563EB?style=flat-square)
-![Casco Digital](https://img.shields.io/badge/Casco-Digital-111827?style=flat-square)
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
-![RSS](https://img.shields.io/badge/RSS-Feed-FFA500?style=flat-square&logo=rss&logoColor=white)
+## Overview
 
-</div>
+The [HardMOB](https://www.hardmob.com.br/) deals forum (section 407) has no usable RSS feed, so new
+deals only show up by reloading the forum page. This service polls the forum listing, fetches the
+first post of each new thread in the background and serves everything as a standard RSS 2.0 feed
+that works with Tiny Tiny RSS, Feedly and other readers. It runs as two containers with Docker Compose.
 
----
+## Features
 
-Servidor RSS para novos topicos no forum de promocoes do [HardMOB](https://www.hardmob.com.br/forumdisplay.php?f=407). Usa FlareSolverr para bypass de Cloudflare e expoe um feed compativel com Tiny Tiny RSS, Feedly e outros leitores.
+- Polls the forum listing every 10 minutes and tracks threads in discovery order.
+- Fetches the first post of each new thread in a background worker and uses it as the item description.
+- Serves an RSS 2.0 feed with title, link, GUID, description and discovery date per item.
+- Protects both the feed and the status endpoint with a shared token (`FEED_TOKEN`).
+- Exposes a one-line status page with thread count, items with content and queue length.
+- Ships with Docker Compose, including healthchecks and a bundled FlareSolverr container that the service uses to load forum pages.
 
-O conteudo do primeiro post de cada topico e buscado em background logo apos a descoberta, para que o leitor RSS receba titulo, link e descricao quando disponivel.
+## How it works
 
-## Quick Start
-
-```bash
-git clone https://github.com/cascodigital/hardmob-monitor.git
-cd hardmob-monitor/rss
-cp .env.example .env
-# edite FEED_TOKEN no .env
-docker compose up -d
+```
+                 every 600 s                      queue of new thread URLs
+ refresh_loop ──────────────► FlareSolverr ──► forum listing ──► fetch_worker
+      │                        (container)                           │ first post HTML
+      ▼                                                              ▼
+ in-memory cache {url: title, description, discovered_at} ◄──────────┘
+      │
+      ▼
+ Flask :8099   /feed?token=...  -> RSS 2.0
+               /?token=...      -> status line
 ```
 
-Feed:
+- Page loads go through a [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr) container on the internal Compose network (`http://flaresolverr:8191/v1`), which renders the pages in a headless browser.
+- Thread links are extracted with several vBulletin CSS selectors in order, so minor template changes do not break the listing.
+- The worker waits 3 seconds between thread fetches to keep the load on the forum and on FlareSolverr low.
+- State is kept in memory only; items are not persisted across restarts.
 
-```text
-http://localhost:8099/feed?token=SEU_TOKEN
-```
+## Requirements
 
-Status:
+- Docker with the Compose plugin
+- Outbound HTTPS access to `www.hardmob.com.br`
+- An RSS reader that can subscribe to a URL with a query-string token
 
-```text
-http://localhost:8099/?token=SEU_TOKEN
-```
+## Quick start
 
-## Configuracao
+1. Clone and configure the token (any random string you choose):
 
-Defina o token de acesso por variavel de ambiente:
+   ```bash
+   git clone https://github.com/cascodigital/hardmob-monitor.git
+   cd hardmob-monitor/rss
+   cp .env.example .env
+   # edit FEED_TOKEN in .env
+   ```
 
-```bash
-FEED_TOKEN="troque-este-token"
-```
+2. Start both containers:
 
-No Docker Compose, `FEED_TOKEN` e lido do ambiente ou de `.env`. Se nao for definido, o fallback e `change-me`, adequado apenas para teste local.
+   ```bash
+   docker compose up -d
+   ```
 
-## Expondo com Cloudflare Tunnel
+3. Check the status endpoint (the first refresh runs on startup):
 
-Crie um hostname no tunnel apontando para:
+   ```bash
+   curl "http://localhost:8099/?token=YOUR_TOKEN"
+   ```
 
-```text
-http://<ip-do-servidor>:8099
-```
+   Then subscribe your reader to `http://localhost:8099/feed?token=YOUR_TOKEN`.
 
-Use a URL publica com o token:
+## Configuration
 
-```text
-https://seudominio.com/feed?token=SEU_TOKEN
-```
+| Variable / key | Required | Default | Description |
+|---|---|---|---|
+| `FEED_TOKEN` (env / `.env`) | Yes | `change-me` | Shared token required on `/feed` and `/`; requests without it get HTTP 403 |
+| `TZ` (compose) | No | `America/Sao_Paulo` | Container time zone |
+| `REFRESH_INTERVAL` (`app.py`) | No | `600` | Seconds between listing refreshes |
+| `FORUM_URL` (`app.py`) | No | forum section 407 | Forum listing to monitor |
+| `FLARESOLVERR_URL` (`app.py`) | No | `http://flaresolverr:8191/v1` | FlareSolverr endpoint |
 
-## Personalizacao
+The service listens on port `8099` (published by `docker-compose.yml`).
 
-No codigo:
+## Usage
 
-```python
-REFRESH_INTERVAL = 600
-FORUM_URL = "https://www.hardmob.com.br/forumdisplay.php?f=407"
-```
+| Endpoint | What it returns |
+|---|---|
+| `GET /feed?token=...` | RSS 2.0 feed (`application/rss+xml`) |
+| `GET /?token=...` | Status line, e.g. `HardMob RSS \| 40 threads \| 38 with content \| 2 queued` |
 
-## Stack
+To reach the feed from outside your network, put it behind a reverse proxy or a tunnel (for example
+Cloudflare Tunnel pointing a hostname to `http://<server>:8099`) and subscribe with the public URL plus
+the token. Use a long random token, since it is the only access control.
 
-- Python 3.11 + BeautifulSoup4 + Flask
-- [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr)
-- Docker Compose
+## Limitations
 
-## Aviso
+- In-memory state: a restart empties the feed until the next refresh, and the item list grows without limit while the process runs.
+- Only the first page of the forum listing is read on each refresh.
+- The token travels in the query string, so it can end up in proxy and reader logs.
+- Parsing depends on the forum's vBulletin markup; a layout change can produce an empty feed.
+- Feed channel title and description are in Portuguese, matching the forum.
+- Not affiliated with HardMOB. Use it in line with the site's terms of service and keep the polling interval reasonable.
 
-Ferramenta de automacao pessoal. Sem afiliacao com HardMOB. Respeite os termos de servico do site.
+## License
 
----
-
-Desenvolvido com Casco Digital.
+MIT — see [LICENSE](LICENSE).
